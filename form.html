@@ -1,65 +1,129 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <title>Register</title>
-        <link rel="stylesheet" href="form.css">
-    </head>
-    <body>
-    <div class="form_wrapper">
-    <div class="form_container">
-      <div class="title_container">
-        <h2>Register Here</h2>
-      </div>
-      <div class="row clearfix">
-        <div class="">
-          <form>
-            <div class="input_field"> <span><i aria-hidden="true" class="fa fa-user"></i></span>
-                <input type="text" name="email" placeholder="Name" required />
-            </div>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Registration</title>
+    <link rel="stylesheet" href="form.css">
+</head>
+<body>
+    <main class="page-wrap">
+        <section class="form-card">
+            <header class="form-header">
+                <p class="tag">SYNERGY SPORTS FEST</p>
+                <h1>Event Registration</h1>
+                <p>Select your events, fill in your details, and submit your registration.</p>
+            </header>
 
-            <div class="input_field"> <span><i aria-hidden="true" class="fa fa-phone"></i></span>
-                <input type="text" name="email" placeholder="Contact Number" required />
-            </div>
+            <form action="register.php" method="POST" class="registration-form" autocomplete="on" enctype="multipart/form-data">
+                <div class="field-grid">
+                    <div class="field">
+                        <label for="EnrollmentNo">Registration / Enrollment No</label>
+                        <input id="EnrollmentNo" type="text" name="EnrollmentNo" placeholder="e.g. SYN2026-145" required>
+                    </div>
 
-            <div class="input_field"> <span><i aria-hidden="true" class="fa fa-university"></i></span>
-                <input type="text" name="email" placeholder="College Name" required />
-            </div>
+                    <div class="field">
+                        <label for="Name">Full Name</label>
+                        <input id="Name" type="text" name="Name" placeholder="Enter full name" required>
+                    </div>
 
-            <div class="input_field"> <span><i aria-hidden="true" class="fa fa-envelope"></i></span>
-              <input type="email" name="email" placeholder="Email" required />
-            </div>
+                    <div class="field">
+                        <label for="Affiliation">Affiliation</label>
+                        <select id="Affiliation" name="Affiliation" required>
+                            <option value="" selected disabled>Select affiliation</option>
+                            <option value="Student">Student</option>
+                            <option value="Faculty">Faculty</option>
+                            <option value="Alumni">Alumni</option>
+                            <option value="Guest">Guest</option>
+                        </select>
+                    </div>
 
-            <div class="input_field"> <span><i aria-hidden="true" class="fa fa-user"></i></span>
-                <input type="text" name="email" placeholder="Team Name (If Individual Add Your Name)" required />
-            </div>
+                    <div class="field">
+                        <label for="Course">Course</label>
+                        <select id="Course" name="Course" required>
+                            <option value="" selected disabled>Select course</option>
+                            <option value="B.Tech">B.Tech</option>
+                            <option value="BCA">BCA</option>
+                            <option value="BBA">BBA</option>
+                            <option value="M.Tech">M.Tech</option>
+                            <option value="MCA">MCA</option>
+                            <option value="MBA">MBA</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
 
-            <div class="input_field select_option">
-              <select>
-                <option>Select Event</option>
-                <option>ATHLETICS</option>
-                <option>VOLLEYBALL</option>
-                <option>TABLE TENNIS</option>
-                <option>BADMINTON</option>
-                <option>CRICKET</option>
-                <option>FOOTBALL</option>
-                <option>BASKETBALL</option>
-                <option>KHO KHO</option>
-              </select>
-              <div class="select_arrow"></div>
-            </div>
+                    <div class="field">
+                        <label for="MobileNo">Mobile No</label>
+                        <div class="phone-input-wrap">
+                            <span class="country-code">+91</span>
+                            <input id="MobileNo" type="tel" name="MobileNo" placeholder="10-digit mobile number" pattern="[0-9]{10}" maxlength="10" inputmode="numeric" autocomplete="tel-national" required>
+                        </div>
+                    </div>
 
-            <div class="input_field"> <span><i aria-hidden="true" class="fa fa-file"></i></span>
-                <input type="text" placeholder="Select a File to Upload the Ss of Payment:" disabled />
-            </div>
+                    <div class="field field-full">
+                        <label for="EmailID">Email ID</label>
+                        <input id="EmailID" type="email" name="EmailID" placeholder="name@example.com" required>
+                    </div>
 
-            <input type="file" name="file" id="'file"><br><br><br>
-            <input class="button" type="submit" value="Register" />
+                    <div class="field field-full">
+                        <label for="IDCard">ID Card (Upload)</label>
+                        <input id="IDCard" type="file" name="IDCard" accept="image/*,.pdf" required>
+                        <span class="file-hint">Accepted: JPG, PNG, PDF (Max 5MB)</span>
+                    </div>
+                </div>
 
-          </form>
-        </div>
-      </div>
-    </div>
-    </div>
-  <script src="https://use.fontawesome.com/4ecc3dbb0b.js"></script>
-    </body>
+                <section class="event-block">
+                    <h2>Track and Field</h2>
+                    <div class="checkbox-group">
+                        <label class="checkbox-button"><input type="checkbox" name="A100">100m Sprint</label>
+                        <label class="checkbox-button"><input type="checkbox" name="A200">200m Sprint</label>
+                        <label class="checkbox-button"><input type="checkbox" name="A400">400m Sprint</label>
+                        <label class="checkbox-button"><input type="checkbox" name="ShotPut">Shot Put</label>
+                        <label class="checkbox-button"><input type="checkbox" name="Relay[]" value="4 x 100m">Relay 4 x 100m</label>
+                        <label class="checkbox-button"><input type="checkbox" name="Relay[]" value="4 x 400m">Relay 4 x 400m</label>
+                    </div>
+                </section>
+
+                <section class="event-block">
+                    <h2>Indoor Event</h2>
+                    <div class="checkbox-group">
+                        <label class="checkbox-button"><input type="checkbox" name="Chess">Chess</label>
+                    </div>
+                </section>
+
+                <section class="event-block">
+                    <h2>Other Team Events</h2>
+                    <div class="checkbox-group">
+                        <label class="checkbox-button"><input type="checkbox" name="BBOption">Basketball</label>
+                        <label class="checkbox-button"><input type="checkbox" name="VBOption">Volleyball</label>
+                        <label class="checkbox-button"><input type="checkbox" name="KKOption">Kho Kho</label>
+                        <label class="checkbox-button"><input type="checkbox" name="FBOption">Football</label>
+                    </div>
+                </section>
+
+                <button type="submit" class="submit-btn">Register Now</button>
+            </form>
+        </section>
+    </main>
+
+    <script>
+    document.querySelectorAll('.checkbox-button input[type="checkbox"]').forEach((checkbox) => {
+        const button = checkbox.closest('.checkbox-button');
+
+        const syncState = () => {
+            button.classList.toggle('checked', checkbox.checked);
+        };
+
+        checkbox.addEventListener('change', syncState);
+        syncState();
+    });
+
+    const mobileInput = document.getElementById('MobileNo');
+    if (mobileInput) {
+        mobileInput.addEventListener('input', () => {
+            mobileInput.value = mobileInput.value.replace(/\D/g, '').slice(0, 10);
+        });
+    }
+    </script>
+</body>
 </html>
