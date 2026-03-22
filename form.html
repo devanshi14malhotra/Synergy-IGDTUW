@@ -13,14 +13,23 @@
                 <p class="tag">SYNERGY SPORTS FEST</p>
                 <h1>Event Registration</h1>
                 <p>Select your events, fill in your details, and submit your registration.</p>
+                <p class="autosave-notice">✓ Your progress is automatically saved</p>
             </header>
 
-            <form action="register.php" method="POST" class="registration-form" autocomplete="on" enctype="multipart/form-data">
+            <form action="register.php" method="POST" class="registration-form" autocomplete="on" enctype="multipart/form-data" id="registrationForm" novalidate>
+
+                <section class="registration-instructions" aria-label="Important registration instructions">
+                    <h2>Important Instructions</h2>
+                    <ol>
+                        <li>Team captains must register first for team sports. Team members will need their captain's UID to complete registration.</li>
+                        <li>Eligibility: Participants must be currently enrolled in a recognized university or college. Only students are permitted to register.</li>
+                        <li>Participation Criteria: All sports events are restricted to female participants. Chess is open to both male and female participants.</li>
+                        <li>Identity Verification: A clear and legible image of a valid college ID card must be uploaded. Incomplete or unclear submissions may be rejected.</li>
+                        <li>Registration Fees: Team Sports (Basketball, Football, Volleyball, Kho Kho): ₹1700 per team. Individual Sports (Athletics and Chess): ₹120 per participant.</li>
+                    </ol>
+                </section>
+
                 <div class="field-grid">
-                    <div class="field">
-                        <label for="EnrollmentNo">Registration / Enrollment No</label>
-                        <input id="EnrollmentNo" type="text" name="EnrollmentNo" placeholder="e.g. SYN2026-145" required>
-                    </div>
 
                     <div class="field">
                         <label for="Name">Full Name</label>
@@ -28,7 +37,7 @@
                     </div>
 
                     <div class="field">
-                        <label for="Affiliation">Affiliation (College)</label>
+                        <label for="Affiliation">Affiliation / University / Institute</label>
                         <input id="Affiliation" type="text" name="Affiliation" placeholder="Enter college name" required>
                     </div>
 
@@ -44,6 +53,11 @@
                             <option value="MBA">MBA</option>
                             <option value="Other">Other</option>
                         </select>
+                    </div>
+
+                    <div class="field">
+                        <label for="EnrollmentNo">Registration / Enrollment No</label>
+                        <input id="EnrollmentNo" type="text" name="EnrollmentNo" placeholder="e.g. SYN2026-145" required>
                     </div>
 
                     <div class="field">
@@ -96,6 +110,10 @@
 
                 <h2>Select the Sports</h2>
 
+                <div id="sportError" class="sport-error" hidden>
+                    ⚠ Please select at least one sport before submitting.
+                </div>
+
                 <section class="event-block">
                     <h2>Track and Field</h2>
                     <div class="checkbox-group">
@@ -124,161 +142,305 @@
                     </div>
                 </section>
 
+                <div class="field field-full" id="teamRoleField" hidden>
+                    <label>Select your role in the team</label>
+                    <div class="coach-toggle" role="radiogroup">
+                        <label class="coach-option">
+                            <input type="radio" name="TeamRole" value="Captain">
+                            <span>Team Captain</span>
+                        </label>
+                        <label class="coach-option">
+                            <input type="radio" name="TeamRole" value="Member">
+                            <span>Team Member</span>
+                        </label>
+                    </div>
+                    <p id="teamRoleHint" style="margin-top: 8px; font-size: 14px; color: #666;">
+                        Team members do not need to pay. Captains must complete payment.
+                    </p>
+                </div>
+
+                <div class="field field-full" id="captainUIDField" hidden>
+                    <label for="CaptainUID">Captain's UID</label>
+                    <input id="CaptainUID" type="text" name="CaptainUID" placeholder="e.g. ABC1234">
+                    <span class="file-hint">Enter the 7-character UID of your team captain.</span>
+                </div>
+
                 <section class="payment-block" id="paymentBlock">
                     <h2>Payment Details</h2>
-                    <p class="payment-note">Selected sport fees are highlighted below.</p>
+                    <p class="payment-note">Total amount payable based on selected sports is shown below.</p>
                     <div class="payment-tags" id="paymentTags">
                         <span class="payment-empty">Select a sport to view the fee.</span>
                     </div>
                     <div class="qr-panel">
                         <h3>Scan QR to Pay</h3>
-                        <img
-                            src="img/qr.png"
-                            alt="Payment QR"
-                            class="payment-qr"
-                            loading="lazy"
-                        >
+                        <img src="img/qr.png" alt="Payment QR" class="payment-qr" loading="lazy">
                         <p class="upi-note">UPI ID: synergydtu@psbpay</p>
                     </div>
                 </section>
 
-                <div class="field field-full payment-screenshot-field">
+                <div class="field field-full payment-screenshot-field" id="paymentScreenshotField">
                     <label for="PaymentScreenshot">Payment Screenshot (Upload)</label>
                     <input id="PaymentScreenshot" type="file" name="PaymentScreenshot" accept="image/*,.pdf" required>
                     <span class="file-hint">Accepted: JPG, PNG, PDF (Max 5MB)</span>
                 </div>
 
-                <button type="submit" class="submit-btn">Register Now</button>
+                <div class="field field-full" id="transactionIdField">
+                    <label for="TransactionID">Transaction ID</label>
+                    <input id="TransactionID" type="text" name="TransactionID" placeholder="Enter payment transaction ID" required>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    <span id="submitBtnText">Register Now</span>
+                    <span id="submitBtnSpinner" hidden>Submitting…</span>
+                </button>
+
             </form>
         </section>
     </main>
 
     <script>
-    const sportCheckboxes = Array.from(document.querySelectorAll('.checkbox-button input[type="checkbox"]'));
+    const sportCheckboxes        = Array.from(document.querySelectorAll('.checkbox-button input[type="checkbox"]'));
+    const mobileInput            = document.getElementById('MobileNo');
+    const paymentTags            = document.getElementById('paymentTags');
+    const coachOptions           = Array.from(document.querySelectorAll('input[name="CoachComing"]'));
+    const coachDetails           = document.getElementById('coachDetails');
+    const coachFullNameInput     = document.getElementById('CoachFullName');
+    const coachMobileInput       = document.getElementById('CoachMobileNo');
+    const teamRoleField          = document.getElementById('teamRoleField');
+    const teamRoleOptions        = Array.from(document.querySelectorAll('input[name="TeamRole"]'));
+    const captainUIDField        = document.getElementById('captainUIDField');
+    const captainUIDInput        = document.getElementById('CaptainUID');
+    const paymentBlock           = document.getElementById('paymentBlock');
+    const paymentScreenshotField = document.getElementById('paymentScreenshotField');
+    const paymentScreenshotInput = document.getElementById('PaymentScreenshot');
+    const transactionIdField     = document.getElementById('transactionIdField');
+    const transactionIdInput     = document.getElementById('TransactionID');
+    const sportError             = document.getElementById('sportError');
+    const submitBtn              = document.getElementById('submitBtn');
+    const submitBtnText          = document.getElementById('submitBtnText');
+    const submitBtnSpinner       = document.getElementById('submitBtnSpinner');
 
     const syncCheckboxVisualState = () => {
-        sportCheckboxes.forEach((checkbox) => {
-            const button = checkbox.closest('.checkbox-button');
-            if (button) {
-                button.classList.toggle('checked', checkbox.checked);
-            }
+        sportCheckboxes.forEach(cb => {
+            const btn = cb.closest('.checkbox-button');
+            if (btn) btn.classList.toggle('checked', cb.checked);
         });
     };
 
-    const mobileInput = document.getElementById('MobileNo');
-
-    const paymentTags = document.getElementById('paymentTags');
-    const coachOptions = Array.from(document.querySelectorAll('input[name="CoachComing"]'));
-    const coachDetails = document.getElementById('coachDetails');
-    const coachFullNameInput = document.getElementById('CoachFullName');
-    const coachMobileInput = document.getElementById('CoachMobileNo');
-
-    const attachTenDigitValidation = (inputElement) => {
-        if (!inputElement) {
-            return;
-        }
-
-        inputElement.addEventListener('input', () => {
-            inputElement.value = inputElement.value.replace(/\D/g, '').slice(0, 10);
+    const attachTenDigitValidation = (el) => {
+        if (!el) return;
+        el.addEventListener('input', () => {
+            el.value = el.value.replace(/\D/g, '').slice(0, 10);
         });
     };
 
     const updateCoachFields = () => {
-        const selectedCoachOption = document.querySelector('input[name="CoachComing"]:checked');
-        const isCoachComing = selectedCoachOption && selectedCoachOption.value === 'Yes';
-
-        if (!coachDetails || !coachFullNameInput || !coachMobileInput) {
-            return;
-        }
-
-        coachDetails.hidden = !isCoachComing;
-        coachFullNameInput.required = isCoachComing;
-        coachMobileInput.required = isCoachComing;
-
-        if (!isCoachComing) {
-            coachFullNameInput.value = '';
-            coachMobileInput.value = '';
-        }
+        const sel    = document.querySelector('input[name="CoachComing"]:checked');
+        const coming = sel && sel.value === 'Yes';
+        coachDetails.hidden         = !coming;
+        coachFullNameInput.required = coming;
+        coachMobileInput.required   = coming;
+        if (!coming) { coachFullNameInput.value = ''; coachMobileInput.value = ''; }
     };
 
-    const isChecked = (inputName) => {
-        const input = document.querySelector(`input[name="${inputName}"]`);
-        return Boolean(input && input.checked);
+    const isChecked = name => {
+        const el = document.querySelector(`input[name="${name}"]`);
+        return Boolean(el && el.checked);
     };
 
-    const getSelectedTrackAndFieldSports = () => {
-        return Array.from(
-            document.querySelectorAll('.event-block:first-of-type .checkbox-button input[type="checkbox"]:checked')
-        ).map((input) => input.parentElement.textContent.trim());
+    const INDIVIDUAL_SPORT_NAMES = ['A100', 'A200', 'A400', 'ShotPut', 'Relay[]', 'Chess'];
+
+    const getSelectedIndividualSportsCount = () =>
+        INDIVIDUAL_SPORT_NAMES.filter(n => isChecked(n)).length;
+
+    const hasAnyTeamSportSelected = () =>
+        Boolean(document.querySelector('input[name="BBOption"]:checked') ||
+                document.querySelector('input[name="VBOption"]:checked') ||
+                document.querySelector('input[name="KKOption"]:checked') ||
+                document.querySelector('input[name="FBOption"]:checked'));
+
+    const hasAnySportSelected = () =>
+        getSelectedIndividualSportsCount() > 0 || hasAnyTeamSportSelected();
+
+    const updateTeamRoleAndPaymentVisibility = () => {
+        const hasTeamSport = hasAnyTeamSportSelected();
+        teamRoleField.hidden = !hasTeamSport;
+        if (!hasTeamSport) teamRoleOptions.forEach(o => o.checked = false);
+
+        const checkedRole   = document.querySelector('input[name="TeamRole"]:checked');
+        const isTeamMember  = hasTeamSport && checkedRole && checkedRole.value === 'Member';
+        const hasIndividual = getSelectedIndividualSportsCount() > 0;
+
+        captainUIDField.hidden   = !isTeamMember;
+        captainUIDInput.required = isTeamMember;
+        if (!isTeamMember) captainUIDInput.value = '';
+
+        const hidePayment             = isTeamMember && !hasIndividual;
+        paymentBlock.hidden           = hidePayment;
+        paymentScreenshotField.hidden = hidePayment;
+        paymentScreenshotInput.required = !hidePayment;
+        transactionIdField.hidden     = hidePayment;
+        transactionIdInput.required   = !hidePayment;
+        if (hidePayment) { paymentScreenshotInput.value = ''; transactionIdInput.value = ''; }
     };
 
     const updatePaymentSummary = () => {
-        if (!paymentTags) {
-            return;
-        }
+        if (!paymentTags) return;
+        let total = 0;
+        const selected     = [];
+        const checkedRole  = document.querySelector('input[name="TeamRole"]:checked');
+        const roleLabel    = checkedRole ? checkedRole.value : 'Role not selected';
+        const isTeamMember = checkedRole && checkedRole.value === 'Member';
 
-        const selectedFees = [];
-
-        const selectedTrackSports = getSelectedTrackAndFieldSports();
-        selectedTrackSports.forEach((sportName) => {
-            selectedFees.push(`${sportName}: Rs 120 (per person)`);
+        const labels = { A100: '100m Sprint', A200: '200m Sprint', A400: '400m Sprint',
+                         ShotPut: 'Shot Put', 'Relay[]': 'Relay 4 x 100m', Chess: 'Chess' };
+        INDIVIDUAL_SPORT_NAMES.forEach(n => {
+            if (isChecked(n)) { total += 120; selected.push(labels[n]); }
+        });
+        const teamMap = { BBOption: 'Basketball', VBOption: 'Volleyball', KKOption: 'Kho Kho', FBOption: 'Football' };
+        Object.entries(teamMap).forEach(([n, label]) => {
+            if (isChecked(n)) {
+                if (!isTeamMember) total += 1700;
+                selected.push(`${label} (${roleLabel})`);
+            }
         });
 
-        if (isChecked('Chess')) {
-            selectedFees.push('Chess: Rs 120 (per person)');
-        }
-
-        if (isChecked('KKOption')) {
-            selectedFees.push('Kho Kho: Rs 1700 (per team)');
-        }
-
-        if (isChecked('BBOption')) {
-            selectedFees.push('Basketball: Rs 1700 (per team)');
-        }
-
-        if (isChecked('FBOption')) {
-            selectedFees.push('Football: Rs 1700 (per team)');
-        }
-
-        if (isChecked('VBOption')) {
-            selectedFees.push('Volleyball: Rs 1700 (per team)');
-        }
-
-        if (selectedFees.length === 0) {
+        if (total === 0 && selected.length === 0) {
             paymentTags.innerHTML = '<span class="payment-empty">Select a sport to view the fee.</span>';
             return;
         }
-
-        paymentTags.innerHTML = selectedFees
-            .map((feeText) => `<span class="payment-chip">${feeText}</span>`)
-            .join('');
+        paymentTags.innerHTML = `
+            <span class="payment-chip">Total Payable: ₹${total}</span>
+            <span class="payment-selected">Selected Sport(s): ${selected.join(', ')}</span>`;
     };
 
-    sportCheckboxes.forEach((checkbox) => {
-        checkbox.addEventListener('change', () => {
-            if (checkbox.checked) {
-                sportCheckboxes.forEach((otherCheckbox) => {
-                    if (otherCheckbox !== checkbox) {
-                        otherCheckbox.checked = false;
-                    }
-                });
-            }
+    // ====== Form submit: validate sports + prevent double-submit ======
+    document.getElementById('registrationForm').addEventListener('submit', function (e) {
+        sportError.hidden = true;
+        if (!hasAnySportSelected()) {
+            e.preventDefault();
+            sportError.hidden = false;
+            sportError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+        // Clear autosave on successful submit
+        localStorage.removeItem(STORAGE_KEY);
+        // Show loading state to prevent double-clicks
+        submitBtn.disabled      = true;
+        submitBtnText.hidden    = true;
+        submitBtnSpinner.hidden = false;
+    });
 
+    sportCheckboxes.forEach(cb => {
+        cb.addEventListener('change', () => {
             syncCheckboxVisualState();
+            updateTeamRoleAndPaymentVisibility();
             updatePaymentSummary();
+            if (hasAnySportSelected()) sportError.hidden = true;
         });
     });
 
-    coachOptions.forEach((option) => {
-        option.addEventListener('change', updateCoachFields);
-    });
+    teamRoleOptions.forEach(o => o.addEventListener('change', () => {
+        updateTeamRoleAndPaymentVisibility();
+        updatePaymentSummary();
+    }));
+
+    coachOptions.forEach(o => o.addEventListener('change', updateCoachFields));
 
     attachTenDigitValidation(mobileInput);
     attachTenDigitValidation(coachMobileInput);
 
     syncCheckboxVisualState();
+    updateTeamRoleAndPaymentVisibility();
     updatePaymentSummary();
     updateCoachFields();
+
+    // ====== AUTOSAVE to localStorage ======
+    const STORAGE_KEY = 'synergy_form_2026';
+
+    const textFields    = ['EnrollmentNo', 'Name', 'Affiliation', 'MobileNo',
+                           'EmailID', 'CoachFullName', 'CoachMobileNo', 'CaptainUID', 'TransactionID'];
+    const selectFields  = ['Course'];
+    const radioGroups   = ['CoachComing', 'TeamRole'];
+    const checkboxNames = ['A100', 'A200', 'A400', 'ShotPut', 'Chess',
+                           'BBOption', 'VBOption', 'KKOption', 'FBOption'];
+    const relayCheckbox = document.querySelector('input[name="Relay[]"]');
+
+    const saveForm = () => {
+        const data = {};
+        textFields.forEach(name => {
+            const el = document.getElementById(name);
+            if (el) data[name] = el.value;
+        });
+        selectFields.forEach(name => {
+            const el = document.getElementById(name);
+            if (el) data[name] = el.value;
+        });
+        radioGroups.forEach(name => {
+            const checked = document.querySelector(`input[name="${name}"]:checked`);
+            data[name] = checked ? checked.value : '';
+        });
+        checkboxNames.forEach(name => {
+            const el = document.querySelector(`input[name="${name}"]`);
+            data[name] = el ? el.checked : false;
+        });
+        data['Relay'] = relayCheckbox ? relayCheckbox.checked : false;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    };
+
+    const restoreForm = () => {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        let data;
+        try { data = JSON.parse(raw); } catch (e) { return; }
+
+        textFields.forEach(name => {
+            const el = document.getElementById(name);
+            if (el && data[name] !== undefined) el.value = data[name];
+        });
+        selectFields.forEach(name => {
+            const el = document.getElementById(name);
+            if (el && data[name]) el.value = data[name];
+        });
+        radioGroups.forEach(name => {
+            if (data[name]) {
+                const radio = document.querySelector(`input[name="${name}"][value="${data[name]}"]`);
+                if (radio) radio.checked = true;
+            }
+        });
+        checkboxNames.forEach(name => {
+            const el = document.querySelector(`input[name="${name}"]`);
+            if (el && data[name] !== undefined) el.checked = data[name];
+        });
+        if (relayCheckbox && data['Relay'] !== undefined) {
+            relayCheckbox.checked = data['Relay'];
+        }
+
+        syncCheckboxVisualState();
+        updateTeamRoleAndPaymentVisibility();
+        updatePaymentSummary();
+        updateCoachFields();
+    };
+
+    const attachAutosave = () => {
+        [...textFields, ...selectFields].forEach(name => {
+            const el = document.getElementById(name);
+            if (el) el.addEventListener('input', saveForm);
+        });
+        radioGroups.forEach(name => {
+            document.querySelectorAll(`input[name="${name}"]`).forEach(el => {
+                el.addEventListener('change', saveForm);
+            });
+        });
+        checkboxNames.forEach(name => {
+            const el = document.querySelector(`input[name="${name}"]`);
+            if (el) el.addEventListener('change', saveForm);
+        });
+        if (relayCheckbox) relayCheckbox.addEventListener('change', saveForm);
+    };
+
+    restoreForm();
+    attachAutosave();
     </script>
 </body>
 </html>
