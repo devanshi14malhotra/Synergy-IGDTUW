@@ -393,7 +393,8 @@ if (!$isPaymentRequired) $TransactionID = null;
 
 // ====== File uploads ======
 $IDCardPath            = handleFileUpload('IDCard',            'uploads/idcards',             $EnrollmentNo, true);
-$PaymentScreenshotPath = handleFileUpload('PaymentScreenshot', 'uploads/payment_screenshots', $EnrollmentNo, $isPaymentRequired);
+$paymentUploadDir      = 'uploads/payments';
+$PaymentScreenshotPath = handleFileUpload('PaymentScreenshot', $paymentUploadDir, $EnrollmentNo, $isPaymentRequired);
 if (!$isPaymentRequired) $PaymentScreenshotPath = null;
 
 // ====== Generate unique UID ======
