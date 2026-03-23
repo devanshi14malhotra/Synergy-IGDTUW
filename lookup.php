@@ -9,21 +9,37 @@ if (!$conn) {
     die('Connection failed: ' . mysqli_connect_error());
 }
 
-$uidInput = '';
+$uidInput        = '';
 $enrollmentInput = '';
-$errorMessage = '';
-$record = null;
-$sportsList = [];
+$mobileInput     = '';
+$errorMessage    = '';
+$record          = null;
+$sportsList      = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $uidInput = isset($_POST['uid']) ? strtoupper(trim($_POST['uid'])) : '';
-    $enrollmentInput = isset($_POST['enrollment']) ? trim($_POST['enrollment']) : '';
+    $uidInput        = isset($_POST['uid'])        ? strtoupper(trim($_POST['uid'])) : '';
+    $enrollmentInput = isset($_POST['enrollment']) ? trim($_POST['enrollment'])      : '';
+    $mobileInput     = isset($_POST['mobile'])     ? trim($_POST['mobile'])          : '';
+
+    // Strip leading +91 or 0 from mobile if entered that way
+    $mobileInput = preg_replace('/^(\+91|0)/', '', $mobileInput);
 
     if ($uidInput === '' && $enrollmentInput === '') {
-        $errorMessage = 'Please enter either UID or Enrollment Number.';
+        $errorMessage = 'Please enter either a UID or an Enrollment Number.';
+    } elseif ($enrollmentInput !== '' && $mobileInput === '') {
+        // Mobile is mandatory when searching by enrollment number
+        $errorMessage = 'Please enter your Mobile Number to verify your identity when searching by Enrollment Number.';
     } else {
+
+        // --- Search by UID (no extra verification needed — UIDs are unique) ---
         if ($uidInput !== '') {
-            $stmt = $conn->prepare('SELECT UID, EnrollmentNo, Name, Affiliation, Course, MobileNo, EmailID, Sports, TeamRole, CaptainUID, TotalAmount, TransactionID FROM `2026_Participants` WHERE UID = ? LIMIT 1');
+            $stmt = $conn->prepare(
+                'SELECT UID, EnrollmentNo, Name, Affiliation, Course, MobileNo, EmailID,
+                        Sports, TeamRole, CaptainUID, TotalAmount, TransactionID
+                 FROM `2026_Participants`
+                 WHERE UID = ?
+                 LIMIT 1'
+            );
             if ($stmt) {
                 $stmt->bind_param('s', $uidInput);
                 $stmt->execute();
@@ -33,20 +49,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        if (!$record && $enrollmentInput !== '') {
-            $stmt = $conn->prepare('SELECT UID, EnrollmentNo, Name, Affiliation, Course, MobileNo, EmailID, Sports, TeamRole, CaptainUID, TotalAmount, TransactionID FROM `2026_Participants` WHERE EnrollmentNo = ? LIMIT 1');
+        // --- Search by Enrollment Number + Mobile (disambiguation) ---
+        if (!$record && $enrollmentInput !== '' && $mobileInput !== '') {
+            $stmt = $conn->prepare(
+                'SELECT UID, EnrollmentNo, Name, Affiliation, Course, MobileNo, EmailID,
+                        Sports, TeamRole, CaptainUID, TotalAmount, TransactionID
+                 FROM `2026_Participants`
+                 WHERE EnrollmentNo = ? AND MobileNo = ?
+                 LIMIT 1'
+            );
             if ($stmt) {
-                $stmt->bind_param('s', $enrollmentInput);
+                $stmt->bind_param('ss', $enrollmentInput, $mobileInput);
                 $stmt->execute();
                 $result = $stmt->get_result();
                 $record = $result ? $result->fetch_assoc() : null;
                 $stmt->close();
             }
+
+            // If no match, check whether the enrollment number exists at all
+            // so we can give a more helpful error message
+            if (!$record) {
+                $stmtCheck = $conn->prepare(
+                    'SELECT COUNT(*) AS cnt FROM `2026_Participants` WHERE EnrollmentNo = ?'
+                );
+                if ($stmtCheck) {
+                    $stmtCheck->bind_param('s', $enrollmentInput);
+                    $stmtCheck->execute();
+                    $resultCheck = $stmtCheck->get_result();
+                    $rowCheck    = $resultCheck ? $resultCheck->fetch_assoc() : null;
+                    $stmtCheck->close();
+
+                    if ($rowCheck && (int) $rowCheck['cnt'] > 0) {
+                        // Enrollment exists but mobile didn't match
+                        $errorMessage = 'The mobile number entered does not match our records for this Enrollment Number. Please check and try again.';
+                    } else {
+                        // Enrollment doesn't exist at all
+                        $errorMessage = 'No registration found for the provided Enrollment Number.';
+                    }
+                }
+            }
         }
 
-        if (!$record) {
-            $errorMessage = 'No registration found for the provided details.';
-        } else {
+        // --- UID search returned nothing ---
+        if (!$record && $errorMessage === '' && $uidInput !== '') {
+            $errorMessage = 'No registration found for the provided UID.';
+        }
+
+        // --- Decode sports JSON ---
+        if ($record) {
             $decodedSports = json_decode((string) $record['Sports'], true);
             if (is_array($decodedSports)) {
                 $sportsList = $decodedSports;
@@ -150,12 +200,34 @@ function h($value)
             padding: 0.72rem 0.82rem;
             font-size: 0.95rem;
             font-family: inherit;
+            transition: border-color 0.15s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
         }
 
         .hint {
             margin: 0;
             color: var(--muted);
             font-size: 0.84rem;
+        }
+
+        /* Mobile field visibility toggle */
+        .mobile-field {
+            display: none; /* hidden by default */
+        }
+
+        .mobile-field.visible {
+            display: flex;
+        }
+
+        .mobile-note {
+            margin: 0;
+            font-size: 0.8rem;
+            color: var(--muted);
+            font-style: italic;
         }
 
         .btn {
@@ -168,7 +240,10 @@ function h($value)
             font-size: 0.96rem;
             font-weight: 800;
             cursor: pointer;
+            transition: opacity 0.15s;
         }
+
+        .btn:hover { opacity: 0.88; }
 
         .error {
             margin-top: 0.9rem;
@@ -228,15 +303,32 @@ function h($value)
             </header>
             <div class="body">
                 <form class="lookup-form" method="POST" action="lookup.php" autocomplete="on">
+
                     <div class="field">
                         <label for="uid">UID</label>
-                        <input id="uid" type="text" name="uid" maxlength="7" placeholder="e.g. A9K2P7Q" value="<?php echo h($uidInput); ?>">
+                        <input id="uid" type="text" name="uid" maxlength="7"
+                               placeholder="e.g. A9K2P7Q"
+                               value="<?php echo h($uidInput); ?>">
                     </div>
+
                     <p class="hint">OR</p>
+
                     <div class="field">
                         <label for="enrollment">Enrollment Number</label>
-                        <input id="enrollment" type="text" name="enrollment" placeholder="e.g. SYN2026-145" value="<?php echo h($enrollmentInput); ?>">
+                        <input id="enrollment" type="text" name="enrollment"
+                               placeholder="e.g. SYN2026-145"
+                               value="<?php echo h($enrollmentInput); ?>">
                     </div>
+
+                    <!-- Mobile field — shown via JS when enrollment is filled, always visible on re-render if enrollment was submitted -->
+                    <div class="field mobile-field<?php echo ($enrollmentInput !== '') ? ' visible' : ''; ?>" id="mobileField">
+                        <label for="mobile">Mobile Number <span style="color:#ea580c;">*</span></label>
+                        <input id="mobile" type="tel" name="mobile" maxlength="15"
+                               placeholder="10-digit number, without +91"
+                               value="<?php echo h($mobileInput); ?>">
+                        <p class="mobile-note">Required to verify your identity when searching by Enrollment Number.</p>
+                    </div>
+
                     <button class="btn" type="submit">Find Receipt</button>
                 </form>
 
@@ -278,6 +370,24 @@ function h($value)
             </div>
         </section>
     </main>
+
+    <script>
+        // Show the mobile field as soon as the user starts typing in the enrollment field
+        const enrollmentInput = document.getElementById('enrollment');
+        const mobileField     = document.getElementById('mobileField');
+
+        function toggleMobile() {
+            if (enrollmentInput.value.trim() !== '') {
+                mobileField.classList.add('visible');
+            } else {
+                mobileField.classList.remove('visible');
+                // Clear mobile value when enrollment is cleared so it isn't submitted silently
+                document.getElementById('mobile').value = '';
+            }
+        }
+
+        enrollmentInput.addEventListener('input', toggleMobile);
+    </script>
 </body>
 </html>
 <?php

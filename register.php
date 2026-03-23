@@ -239,10 +239,13 @@ $Course       = isset($_POST['Course'])       ? trim($_POST['Course'])       : '
 $MobileNo     = isset($_POST['MobileNo'])     ? trim($_POST['MobileNo'])     : '';
 $EmailID      = isset($_POST['EmailID'])      ? trim($_POST['EmailID'])      : '';
 
-// Required field presence
+// Required field presence — checked explicitly before format validation
 if ($EnrollmentNo === '') renderErrorPage('Enrollment number is required.');
 if ($Name         === '') renderErrorPage('Full name is required.');
-if ($Affiliation  === '') renderErrorPage('Affiliation / college name is required.');
+if ($Affiliation  === '') renderErrorPage('College / institute name is required.');
+if ($Course       === '') renderErrorPage('Course is required. Please select a course.');
+if ($MobileNo     === '') renderErrorPage('Mobile number is required.');
+if ($EmailID      === '') renderErrorPage('Email address is required.');
 
 // Course: must be one of the allowed values
 $allowedCourses = ['B.Tech', 'BCA', 'BBA', 'M.Tech', 'MCA', 'MBA', 'Other'];
@@ -256,7 +259,7 @@ if (strlen($MobileNo) !== 10) {
     renderErrorPage('Mobile number must be exactly 10 digits.');
 }
 
-// Email: server-side format validation
+// Email: format validation (presence already checked above)
 if (!filter_var($EmailID, FILTER_VALIDATE_EMAIL)) {
     renderErrorPage('The email address entered does not appear to be valid. Please check and try again.');
 }
@@ -392,7 +395,7 @@ if ($isPaymentRequired && $TransactionID === '') {
 if (!$isPaymentRequired) $TransactionID = null;
 
 // ====== File uploads ======
-$IDCardPath            = handleFileUpload('IDCard',            'uploads/idcards',             $EnrollmentNo, true);
+$IDCardPath            = handleFileUpload('IDCard',            'uploads/idcards',   $EnrollmentNo, true);
 $paymentUploadDir      = 'uploads/payments';
 $PaymentScreenshotPath = handleFileUpload('PaymentScreenshot', $paymentUploadDir, $EnrollmentNo, $isPaymentRequired);
 if (!$isPaymentRequired) $PaymentScreenshotPath = null;
