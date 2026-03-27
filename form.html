@@ -121,7 +121,7 @@
                         <label class="checkbox-button"><input type="checkbox" name="A200">200m Sprint</label>
                         <label class="checkbox-button"><input type="checkbox" name="A400">400m Sprint</label>
                         <label class="checkbox-button"><input type="checkbox" name="ShotPut">Shot Put</label>
-                        <label class="checkbox-button"><input type="checkbox" name="Relay[]" value="4 x 100m">Relay 4 x 100m</label>
+                        <label class="checkbox-button"><input type="checkbox" name="Relay" value="4 x 100m">Relay 4 x 100m</label>
                     </div>
                 </section>
 
@@ -248,7 +248,7 @@
         return Boolean(el && el.checked);
     };
 
-    const INDIVIDUAL_SPORT_NAMES = ['A100', 'A200', 'A400', 'ShotPut', 'Relay[]', 'Chess'];
+    const INDIVIDUAL_SPORT_NAMES = ['A100', 'A200', 'A400', 'ShotPut', 'Relay', 'Chess'];
 
     const getSelectedIndividualSportsCount = () =>
         INDIVIDUAL_SPORT_NAMES.filter(n => isChecked(n)).length;
@@ -293,7 +293,7 @@
         const isTeamMember = checkedRole && checkedRole.value === 'Member';
 
         const labels = { A100: '100m Sprint', A200: '200m Sprint', A400: '400m Sprint',
-                         ShotPut: 'Shot Put', 'Relay[]': 'Relay 4 x 100m', Chess: 'Chess' };
+                         ShotPut: 'Shot Put', 'Relay': 'Relay 4 x 100m', Chess: 'Chess' };
         INDIVIDUAL_SPORT_NAMES.forEach(n => {
             if (isChecked(n)) { total += 120; selected.push(labels[n]); }
         });
@@ -364,7 +364,7 @@
     const radioGroups   = ['CoachComing', 'TeamRole'];
     const checkboxNames = ['A100', 'A200', 'A400', 'ShotPut', 'Chess',
                            'BBOption', 'VBOption', 'KKOption', 'FBOption'];
-    const relayCheckbox = document.querySelector('input[name="Relay[]"]');
+    const relayCheckbox = document.querySelector('input[name="Relay"]');
 
     const saveForm = () => {
         const data = {};
